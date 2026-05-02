@@ -14,27 +14,29 @@ module pe (
     output reg signed [31:0] partial_sum_out
 );
 
-reg signed [15:0] mult_result;
+wire signed [15:0] mult;
+
+assign mult = activation_in * weight_in;
 
 always @(posedge clk) begin
-    if (reset) begin
 
+    if(reset) begin
         activation_out <= 0;
         weight_out <= 0;
         partial_sum_out <= 0;
-
     end
+
     else begin
 
-        mult_result = activation_in * weight_in;
-
-        partial_sum_out <= partial_sum_in + mult_result;
-
+        // propagate data through systolic array
         activation_out <= activation_in;
-
         weight_out <= weight_in;
 
+        // accumulate convolution result
+        partial_sum_out <= partial_sum_in + mult;
+
     end
+
 end
 
 endmodule

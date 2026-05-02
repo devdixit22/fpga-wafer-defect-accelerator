@@ -18,10 +18,25 @@ module output_buffer #(
 
 reg signed [DATA_WIDTH-1:0] memory [0:DEPTH-1];
 
+
+// file descriptor
+integer fd;
+
+
+// open output file
+initial begin
+    fd = $fopen("output.mem","w");
+end
+
+
 always @(posedge clk) begin
 
-    if(write_en)
+    if(write_en) begin
         memory[write_addr] <= write_data;
+
+        // write accelerator result for Python
+        $fdisplay(fd,"%d", write_data);
+    end
 
     if(read_en)
         read_data <= memory[read_addr];

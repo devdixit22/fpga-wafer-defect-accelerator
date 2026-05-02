@@ -18,6 +18,13 @@ module activation_buffer #(
 
 reg signed [DATA_WIDTH-1:0] memory [0:DEPTH-1];
 
+
+// ADD THIS BLOCK HERE
+initial begin
+    $readmemh("activation.mem", memory);
+end
+
+
 always @(posedge clk) begin
 
     if(write_en)

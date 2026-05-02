@@ -18,6 +18,13 @@ module weight_buffer #(
 
 reg signed [DATA_WIDTH-1:0] memory [0:DEPTH-1];
 
+
+// Load weights generated from Python
+initial begin
+    $readmemh("conv1_weight_int8.mem", memory);
+end
+
+
 always @(posedge clk) begin
 
     if(write_en)

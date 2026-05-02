@@ -24,8 +24,8 @@ def im2col(image, kernel_size=3, stride=1):
 
     cols = []
 
-    for y in range(0, out_h):
-        for x in range(0, out_w):
+    for y in range(out_h):
+        for x in range(out_w):
 
             patch = image[y:y+kernel_size, x:x+kernel_size]
 
@@ -50,14 +50,12 @@ def quantize_int8(x):
     return q
 
 
-if __name__ == "__main__":
-
-    img = preprocess_image("test_image.png")
-
-    cols = im2col(img)
+def export_activation_mem(cols):
 
     q_cols = quantize_int8(cols)
 
-    print("Input image shape:", img.shape)
-    print("im2col matrix shape:", cols.shape)
-    print("Quantized matrix shape:", q_cols.shape)
+    flat = q_cols.flatten()
+
+    np.savetxt("activation.mem", flat, fmt="%d")
+
+    return q_cols
