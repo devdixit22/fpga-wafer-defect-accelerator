@@ -1,66 +1,68 @@
 `timescale 1ns/1ps
 
+// FIX: All array ports replaced with flat packed buses throughout.
 module accelerator_top #(
-    parameter N = 32
+    parameter N = 4
 )(
-    input clk,
-    input reset,
-    input start,
+    input  clk,
+    input  reset,
+    input  start,
 
-    input signed [7:0] activations [0:N-1],
-    input signed [7:0] weights [0:N-1],
+    input  [(N*N*8)-1:0]  weights,      // N x N weight matrix packed
+    input  [(N*8)-1:0]    activations,  // N activations packed
+    input  [(N*32)-1:0]   bias,         // N biases packed
 
-    output signed [31:0] outputs [0:N-1],
+    output [(N*32)-1:0]   outputs,
     output compute_done
 );
 
-wire load_weights;
+// Controller
+wire load_weights_en;
 wire stream_activations;
 
-array_controller #(.N(N)) controller (
-
-    .clk(clk),
-    .reset(reset),
-    .start(start),
-
-    .load_weights(load_weights),
+array_controller #(.N(N)) ctrl (
+    .clk               (clk),
+    .reset             (reset),
+    .start             (start),
+    .load_weights      (load_weights_en),
     .stream_activations(stream_activations),
-    .compute_done(compute_done)
-
+    .compute_done      (compute_done)
 );
 
-wire signed [31:0] systolic_out [0:N-1];
+// Systolic array
+wire [(N*32)-1:0] sys_out;
 
 systolic_array #(.N(N)) array (
-
-    .clk(clk),
-    .reset(reset),
-
-    .activations(activations),
-    .weights(weights),
-
-    .outputs(systolic_out)
-
+    .clk          (clk),
+    .reset        (reset),
+    .load_weights (load_weights_en),
+    .weights      (weights),
+    .activations  (activations),
+    .outputs      (sys_out)
 );
 
-wire signed [31:0] relu_out [0:N-1];
+// Bias add
+wire [(N*32)-1:0] biased;
+
+bias_add #(.N(N)) bias_unit (
+    .data_in_flat  (sys_out),
+    .bias_flat     (bias),
+    .data_out_flat (biased)
+);
+
+// ReLU stage
+wire [(N*32)-1:0] relu_out;
 
 genvar i;
-
 generate
-
-for(i = 0; i < N; i = i + 1) begin : relu_stage
-
-    relu relu_inst (
-
-        .clk(clk),
-        .data_in(systolic_out[i]),
-        .data_out(relu_out[i])
-
-    );
-
-end
-
+    for (i = 0; i < N; i = i + 1) begin : relu_stage
+        relu relu_inst (
+            .clk      (clk),
+            .reset    (reset),
+            .data_in  (biased[((i+1)*32)-1 : i*32]),
+            .data_out (relu_out[((i+1)*32)-1 : i*32])
+        );
+    end
 endgenerate
 
 assign outputs = relu_out;

@@ -3,46 +3,50 @@
 module maxpool_parallel_tb;
 
 reg clk;
+reg reset;
 
-reg signed [31:0] row0 [0:3];
-reg signed [31:0] row1 [0:3];
+// N=4: row buses are 4*32 = 128 bits
+reg [127:0] row0;
+reg [127:0] row1;
 
-wire signed [31:0] pooled [0:1];
+// pooled bus is (N/2)*32 = 64 bits
+wire [63:0] pooled;
 
 maxpool_parallel #(.N(4)) uut (
-
-    .clk(clk),
-
-    .row0(row0),
-    .row1(row1),
-
-    .pooled(pooled)
-
+    .clk        (clk),
+    .reset      (reset),
+    .row0_flat  (row0),
+    .row1_flat  (row1),
+    .pooled_flat(pooled)
 );
 
 always #5 clk = ~clk;
 
 initial begin
+    clk   = 0;
+    reset = 1;
 
-    clk = 0;
+    // Pack values into flat buses: index 0 = bits [31:0], index 1 = bits [63:32], etc.
+    // row0 = [5, 3, 7, 1], row1 = [2, 8, 4, 6]
+    row0[31:0]   = 32'sd5;
+    row0[63:32]  = 32'sd3;
+    row0[95:64]  = 32'sd7;
+    row0[127:96] = 32'sd1;
 
-    row0[0] = 5;
-    row0[1] = 3;
-    row0[2] = 7;
-    row0[3] = 1;
+    row1[31:0]   = 32'sd2;
+    row1[63:32]  = 32'sd8;
+    row1[95:64]  = 32'sd4;
+    row1[127:96] = 32'sd6;
 
-    row1[0] = 2;
-    row1[1] = 8;
-    row1[2] = 4;
-    row1[3] = 6;
-
+    #12 reset = 0;
     #10;
 
-    $display("Pool0 = %d", pooled[0]);
-    $display("Pool1 = %d", pooled[1]);
+    // pool[0] = max(5,3,2,8) = 8
+    // pool[1] = max(7,1,4,6) = 7
+    $display("Pool0 = %0d (expect 8)", $signed(pooled[31:0]));
+    $display("Pool1 = %0d (expect 7)", $signed(pooled[63:32]));
 
     $finish;
-
 end
 
 endmodule

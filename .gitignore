@@ -5,3 +5,15 @@ __pycache__/
 *.pyd
 .env
 .DS_Store
+
+# Data and Models
+data/
+weights/
+results/
+LSWMD.pkl
+wafer_model.pth
+
+# Simulation and generated files
+*.mem
+*.out
+*.png

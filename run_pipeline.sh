@@ -1,53 +1,26 @@
 #!/bin/bash
+set -e
 
-echo "--------------------------------"
-echo "FPGA Wafer Defect Accelerator"
-echo "--------------------------------"
+echo "================================================="
+echo " FPGA Wafer Defect Accelerator - Pipeline Runner"
+echo "================================================="
 
-echo "Activating environment..."
+cd "$(dirname "$0")"
 source venv/bin/activate
 
-echo "Generating activation memory..."
+echo ""
+echo "[1/4] Preparing Dataset..."
+python software/1_prepare_data.py
 
-python3 - <<EOF
-from software.preprocessing.im2col import preprocess_image, im2col, export_activation_mem
+echo ""
+echo "[2/4] Training CNN..."
+python software/2_train.py
 
-img = preprocess_image("test_image.png")
-cols = im2col(img)
-export_activation_mem(cols)
+echo ""
+echo "[3/4] Exporting Weights to FPGA Format..."
+python software/3_export_weights.py
 
-print("activation.mem generated")
-EOF
-
-
-echo "Compiling accelerator..."
-
-iverilog -o accelerator.out \
-hardware/rtl/pe.v \
-hardware/rtl/systolic_array.v \
-hardware/rtl/activation_buffer.v \
-hardware/rtl/weight_buffer.v \
-hardware/rtl/output_buffer.v \
-hardware/tb/pe_tb.v
-
-
-echo "Running accelerator..."
-
-vvp accelerator.out
-
-
-echo "Reading accelerator output..."
-
-python3 - <<EOF
-import numpy as np
-
-data = np.loadtxt("output.mem")
-
-print("Accelerator output:")
-print(data[:10])
-EOF
-
-
-echo "Launching GUI..."
-
-python3 -m software.gui.app
+echo ""
+echo "[4/4] Launching Web Dashboard..."
+export PYTHONPATH=$(pwd)
+python software/web_app/app.py

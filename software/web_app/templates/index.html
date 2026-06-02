@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPGA Wafer Defect Detector</title>
+    <meta name="description" content="Silicon wafer defect detection accelerated by FPGA systolic array hardware">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="bg-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="4" width="14" height="14" rx="2" fill="#00d4ff" opacity="0.9"/>
+                        <rect x="22" y="4" width="14" height="14" rx="2" fill="#00d4ff" opacity="0.6"/>
+                        <rect x="4" y="22" width="14" height="14" rx="2" fill="#00d4ff" opacity="0.6"/>
+                        <rect x="22" y="22" width="14" height="14" rx="2" fill="#00d4ff" opacity="0.3"/>
+                        <circle cx="20" cy="20" r="5" fill="#fff" opacity="0.9"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="logo-title">FPGA Wafer Defect Detector</h1>
+                    <p class="logo-subtitle">Systolic Array CNN Accelerator · N=4</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-chip">
+                    <span class="stat-dot online"></span>
+                    <span>Accelerator Ready</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="stat-label">Architecture</span>
+                    <span class="stat-value">4×4 Systolic</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="stat-label">Precision</span>
+                    <span class="stat-value">INT8</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-zone" id="dropZone">
+                <div class="upload-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <path d="M24 4L24 32M24 4L16 12M24 4L32 12" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M8 28V38C8 40.2091 9.79086 42 12 42H36C38.2091 42 40 40.2091 40 38V28" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="upload-title">Drop wafer image here</h2>
+                <p class="upload-desc">or click to browse · PNG, JPG supported</p>
+                <input type="file" id="fileInput" accept="image/png,image/jpeg,image/jpg" hidden>
+                <button class="upload-btn" id="uploadBtn">
+                    <span>Select Image</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Processing Indicator -->
+        <section class="processing-section" id="processingSection" style="display:none">
+            <div class="processing-card">
+                <div class="processing-spinner">
+                    <div class="spinner-ring"></div>
+                    <div class="spinner-ring delay-1"></div>
+                    <div class="spinner-ring delay-2"></div>
+                </div>
+                <h3>Running FPGA Inference</h3>
+                <div class="pipeline-steps">
+                    <div class="step active" id="step1">
+                        <span class="step-num">1</span>
+                        <span>Preprocessing</span>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step" id="step2">
+                        <span class="step-num">2</span>
+                        <span>Conv1 (FPGA)</span>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step" id="step3">
+                        <span class="step-num">3</span>
+                        <span>Conv2 (FPGA)</span>
+                    </div>
+                    <div class="step-arrow">→</div>
+                    <div class="step" id="step4">
+                        <span class="step-num">4</span>
+                        <span>FC Layers</span>
+                    </div>
+                </div>
+                <p class="processing-note">Compiling Verilog & running systolic array simulation...</p>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display:none">
+            <!-- Prediction Hero -->
+            <div class="prediction-hero">
+                <div class="prediction-badge" id="predictionBadge">
+                    <span class="prediction-label">Detected Defect</span>
+                    <span class="prediction-value" id="predictionValue">—</span>
+                </div>
+                <div class="prediction-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Inference Time</span>
+                        <span class="meta-value" id="inferenceTime">—</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Image Size</span>
+                        <span class="meta-value" id="imageSize">—</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Hardware</span>
+                        <span class="meta-value">Verilog Sim</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Grid -->
+            <div class="viz-grid">
+                <div class="viz-card">
+                    <h3 class="viz-title">Original Image</h3>
+                    <div class="viz-image-wrap">
+                        <img id="originalImg" alt="Original wafer image">
+                    </div>
+                </div>
+                <div class="viz-card">
+                    <h3 class="viz-title">Intensity Heatmap</h3>
+                    <div class="viz-image-wrap">
+                        <img id="heatmapImg" alt="Pixel intensity heatmap">
+                    </div>
+                </div>
+                <div class="viz-card">
+                    <h3 class="viz-title">Pixel Distribution</h3>
+                    <div class="viz-image-wrap">
+                        <img id="histogramImg" alt="Pixel intensity histogram">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline Architecture Diagram -->
+            <div class="arch-card">
+                <h3 class="viz-title">Pipeline Architecture</h3>
+                <div class="arch-flow">
+                    <div class="arch-node sw">
+                        <span class="arch-icon">🖼️</span>
+                        <span class="arch-name">Image</span>
+                        <span class="arch-detail">16×16 Gray</span>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-node sw">
+                        <span class="arch-icon">📐</span>
+                        <span class="arch-name">im2col</span>
+                        <span class="arch-detail">Patch Extract</span>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-node hw">
+                        <span class="arch-icon">⚡</span>
+                        <span class="arch-name">Conv1</span>
+                        <span class="arch-detail">FPGA Systolic</span>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-node sw">
+                        <span class="arch-icon">🔽</span>
+                        <span class="arch-name">MaxPool</span>
+                        <span class="arch-detail">2×2 stride 2</span>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-node hw">
+                        <span class="arch-icon">⚡</span>
+                        <span class="arch-name">Conv2</span>
+                        <span class="arch-detail">FPGA Systolic</span>
+                    </div>
+                    <div class="arch-arrow">→</div>
+                    <div class="arch-node sw">
+                        <span class="arch-icon">🧠</span>
+                        <span class="arch-name">FC+Softmax</span>
+                        <span class="arch-detail">9 Classes</span>
+                    </div>
+                </div>
+                <div class="arch-legend">
+                    <span class="legend-item"><span class="legend-dot hw-dot"></span> FPGA Hardware</span>
+                    <span class="legend-item"><span class="legend-dot sw-dot"></span> Software</span>
+                </div>
+            </div>
+
+            <button class="reset-btn" id="resetBtn">
+                <span>↻ Analyze Another Wafer</span>
+            </button>
+        </section>
+
+        <!-- History Section -->
+        <section class="history-section" id="historySection">
+            <h2 class="section-title">Inference History</h2>
+            <div class="history-table-wrap">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>Image</th>
+                            <th>Prediction</th>
+                            <th>Inference (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr class="empty-row"><td colspan="5">No inference results yet</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>FPGA Wafer Defect Accelerator · Systolic Array CNN · Verilog + Python</p>
+    </footer>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const processingSection = document.getElementById('processingSection');
+        const resultsSection = document.getElementById('resultsSection');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // ── Upload Handling ─────────────────────────────────────
+        uploadBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            // Show processing
+            document.querySelector('.upload-section').style.display = 'none';
+            processingSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+
+            // Animate steps
+            animateSteps();
+
+            fetch('/api/infer', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                processingSection.style.display = 'none';
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    document.querySelector('.upload-section').style.display = 'block';
+                    return;
+                }
+                showResults(data);
+                loadHistory();
+            })
+            .catch(err => {
+                processingSection.style.display = 'none';
+                document.querySelector('.upload-section').style.display = 'block';
+                alert('Network error: ' + err);
+            });
+        }
+
+        function animateSteps() {
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach((id, i) => {
+                setTimeout(() => {
+                    document.getElementById(id).classList.add('active');
+                }, i * 800);
+            });
+        }
+
+        function showResults(data) {
+            resultsSection.style.display = 'block';
+
+            document.getElementById('predictionValue').textContent = data.prediction;
+            document.getElementById('inferenceTime').textContent = data.duration_ms + ' ms';
+            document.getElementById('imageSize').textContent = data.image_shape.join(' × ');
+
+            if (data.original_image) {
+                document.getElementById('originalImg').src = 'data:image/png;base64,' + data.original_image;
+            }
+            document.getElementById('heatmapImg').src = 'data:image/png;base64,' + data.heatmap;
+            document.getElementById('histogramImg').src = 'data:image/png;base64,' + data.histogram;
+
+            // Color the badge based on prediction
+            const badge = document.getElementById('predictionBadge');
+            badge.className = 'prediction-badge defect-' + data.prediction.toLowerCase().replace(/[^a-z]/g, '');
+        }
+
+        // ── Reset ────────────────────────────────────────────────
+        resetBtn.addEventListener('click', () => {
+            resultsSection.style.display = 'none';
+            document.querySelector('.upload-section').style.display = 'block';
+            // Reset pipeline step animations
+            ['step1','step2','step3','step4'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            fileInput.value = '';
+        });
+
+        // ── History ──────────────────────────────────────────────
+        function loadHistory() {
+            fetch('/api/history')
+                .then(r => r.json())
+                .then(rows => {
+                    const tbody = document.getElementById('historyBody');
+                    if (rows.length === 0) {
+                        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No inference results yet</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = rows.map((row, i) => `
+                        <tr>
+                            <td>${i + 1}</td>
+                            <td>${row.Timestamp}</td>
+                            <td>${row.Image}</td>
+                            <td><span class="defect-tag">${row.Prediction}</span></td>
+                            <td>${row.Inference_ms}</td>
+                        </tr>
+                    `).reverse().join('');
+                });
+        }
+        loadHistory();
+    </script>
+</body>
+</html>
