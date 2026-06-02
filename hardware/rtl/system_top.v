@@ -136,12 +136,10 @@ module system_top #(
                     
                     if (in_b == IN_BLOCKS - 1) begin
                         state <= NEXT;
-                        // Write output
-                        out_we <= 1;
                         for (i=0; i<N; i=i+1) begin
-                            // Wait, out_data is updated next cycle, but out_we is 1 now.
-                            // Better do it safely:
+                            out_data[((i+1)*32)-1 -: 32] <= acc[i] + $signed(accel_out[((i+1)*32)-1 -: 32]);
                         end
+                        out_addr_reg <= out_addr;
                     end else begin
                         in_b <= in_b + 1;
                         state <= FETCH;
@@ -149,10 +147,6 @@ module system_top #(
                 end
 
                 NEXT: begin
-                    for (i=0; i<N; i=i+1) begin
-                        out_data[((i+1)*32)-1 -: 32] <= acc[i] + $signed(accel_out[((i+1)*32)-1 -: 32]);
-                    end
-                    out_addr_reg      <= out_addr;
                     out_we <= 1;
 
                     if (patch == NUM_PATCHES - 1) begin

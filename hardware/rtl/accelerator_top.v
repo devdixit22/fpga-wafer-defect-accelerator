@@ -41,30 +41,6 @@ systolic_array #(.N(N)) array (
     .outputs      (sys_out)
 );
 
-// Bias add
-wire [(N*32)-1:0] biased;
-
-bias_add #(.N(N)) bias_unit (
-    .data_in_flat  (sys_out),
-    .bias_flat     (bias),
-    .data_out_flat (biased)
-);
-
-// ReLU stage
-wire [(N*32)-1:0] relu_out;
-
-genvar i;
-generate
-    for (i = 0; i < N; i = i + 1) begin : relu_stage
-        relu relu_inst (
-            .clk      (clk),
-            .reset    (reset),
-            .data_in  (biased[((i+1)*32)-1 : i*32]),
-            .data_out (relu_out[((i+1)*32)-1 : i*32])
-        );
-    end
-endgenerate
-
-assign outputs = relu_out;
+assign outputs = sys_out;
 
 endmodule

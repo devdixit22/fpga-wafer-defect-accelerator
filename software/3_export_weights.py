@@ -63,15 +63,17 @@ def format_conv_weights_for_fpga(w):
         for ib in range(in_blocks):
             w_mem[ob, ib] = w[ob*N:(ob+1)*N, ib*N:(ib+1)*N]
 
-    # For .mem file, each word is N weights (one row of a block).
-    # We write it out flattened, but reversed within each block row for Verilog concatenation.
+    # For .mem file, each word is N*N weights (one entire block).
+    # We write it out flattened, but reversed within each block for Verilog concatenation.
     hex_lines = []
     for ob in range(out_blocks):
         for ib in range(in_blocks):
-            for row in range(N):
-                block_row = w_mem[ob, ib, row, :]
-                hex_str = "".join([f"{int(val) & 0xFF:02x}" for val in reversed(block_row)])
-                hex_lines.append(hex_str)
+            # The systolic array expects rows=in_features and cols=out_channels.
+            # w_mem[ob, ib] has rows=out_channels and cols=in_features.
+            # So we must transpose the (N, N) block before flattening it for hardware.
+            block_flat = w_mem[ob, ib].T.flatten()
+            hex_str = "".join([f"{int(val) & 0xFF:02x}" for val in reversed(block_flat)])
+            hex_lines.append(hex_str)
     
     return w_mem, hex_lines
 

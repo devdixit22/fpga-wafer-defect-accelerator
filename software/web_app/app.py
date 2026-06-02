@@ -24,9 +24,10 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from config import N, IMAGE_SIZE, CLASS_NAMES
-
-import importlib
-sim = importlib.import_module("5_infer")
+import importlib.util
+spec = importlib.util.spec_from_file_location("infer", str(REPO_ROOT / "software" / "5_infer.py"))
+sim = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sim)
 FPGAInference = sim.FPGAInference
 load_image = sim.load_image
 
@@ -139,8 +140,8 @@ def infer():
         duration_ms = (datetime.now() - t0).total_seconds() * 1000
 
         # Generate visualizations
-        heatmap_b64 = _make_heatmap_b64(img_processed)
-        histogram_b64 = _make_histogram_b64(img_processed)
+        heatmap_b64 = _make_heatmap_b64(img_array)
+        histogram_b64 = _make_histogram_b64(img_array)
 
         # Read original image for display
         img_bgr = cv2.imread(str(save_path))
@@ -160,7 +161,7 @@ def infer():
             "original_image": original_b64,
             "heatmap": heatmap_b64,
             "histogram": histogram_b64,
-            "image_shape": list(img_processed.shape),
+            "image_shape": list(img_array.shape),
         })
 
     except Exception as e:
